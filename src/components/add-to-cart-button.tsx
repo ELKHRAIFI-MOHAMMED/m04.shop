@@ -1,14 +1,36 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { trackPixel } from "@/lib/pixel";
+import { useStore } from "@/lib/storefront";
 
 type Variant = { id: number; name: string; available: boolean };
 
-export function AddToCartButton({ productId, variants }: { productId: number; variants: Variant[] }) {
+export function AddToCartButton({
+  productId,
+  productName,
+  variants,
+  selectedVariantId,
+  quantity = 1,
+  value,
+  showCartLink = false,
+}: {
+  productId: number;
+  productName?: string;
+  variants: Variant[];
+  selectedVariantId?: number;
+  quantity?: number;
+  value?: number;
+  showCartLink?: boolean;
+}) {
+  const { t } = useStore();
   const [message, setMessage] = useState("");
+  const [added, setAdded] = useState(false);
   const [pending, setPending] = useState(false);
-  const variant = variants.find((item) => item.available);
+  const variant = variants.find((item) => item.id === selectedVariantId && item.available)
+    ?? variants.find((item) => item.available);
 
   async function addToCart() {
     if (!variant) return;
@@ -17,22 +39,32 @@ export function AddToCartButton({ productId, variants }: { productId: number; va
     try {
       await apiFetch("/cart/" + productId, {
         method: "POST",
-        body: JSON.stringify({ variant_id: variant.id, quantity: 1 }),
+        body: JSON.stringify({ variant_id: variant.id, quantity }),
       });
-      setMessage("Ajouté au panier");
+      setMessage(t("added"));
+      setAdded(true);
+      window.dispatchEvent(new Event("m04-cart-updated"));
+      trackPixel("AddToCart", {
+        content_ids: [String(productId)],
+        content_name: productName,
+        content_type: "product",
+        contents: [{ id: String(productId), quantity }],
+        ...(value ? { value, currency: "MAD" } : {}),
+      });
     } catch {
-      setMessage("Ajout impossible, réessayez.");
+      setMessage(t("addError"));
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <div className="mt-4">
-      <button onClick={addToCart} disabled={!variant || pending} className="w-full rounded-lg bg-zinc-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-400">
-        {!variant ? "Indisponible" : pending ? "Ajout…" : "Ajouter au panier"}
+    <div className="add-to-cart">
+      <button onClick={addToCart} disabled={!variant || pending} className="button button-add">
+        {!variant ? t("unavailable") : pending ? t("adding") : t("add")}
       </button>
-      {message ? <p role="status" className="mt-2 text-center text-xs text-zinc-600">{message}</p> : null}
+      {message ? <p role="status" className="add-to-cart-message">{message}</p> : null}
+      {added && showCartLink ? <Link className="button button-ghost add-to-cart-next" href="/panier">{t("viewCart")}</Link> : null}
     </div>
   );
 }

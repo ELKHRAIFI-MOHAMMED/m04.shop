@@ -1,44 +1,100 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState, type FormEvent } from "react";
+import { CheckIcon, MinusIcon, PlusIcon, ShoppingBagOpenIcon } from "@phosphor-icons/react";
 import { apiFetch } from "@/lib/api";
+import { getProduct, type Product } from "@/lib/catalog";
+import { trackPixel } from "@/lib/pixel";
+import { formatPrice, useStore } from "@/lib/storefront";
 
-type CartLine = { product_id: number; name: string; image_url: string; variant_id: number; variant: string; quantity: number; total: number; available: boolean };
+type CartLine = {
+  product_id: number;
+  slug: string;
+  name: string;
+  image_url: string;
+  variant_id: number;
+  variant: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  available: boolean;
+};
 type CartResponse = { data: CartLine[] };
 type CheckoutResponse = { request_key: string; shipping: number };
-type OrderResponse = { data: { reference: string; total: number } };
+type OrderResponse = {
+  data: {
+    reference: string;
+    total: number;
+    event_id: string;
+    items: { item_id: string; item_name: string; quantity: number; price: number }[];
+  };
+};
+type ErrorKey = "cartLoadError" | "cartUpdateError" | "cartRemoveError" | "orderError" | "lineError";
 
 export default function CartPage() {
+  const { language, t } = useStore();
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [products, setProducts] = useState<Record<string, Product>>({});
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ErrorKey | null>(null);
   const [confirmation, setConfirmation] = useState<OrderResponse["data"] | null>(null);
 
-  async function refresh() {
-    try {
-      const result = await apiFetch<CartResponse>("/cart");
-      setCart(result.data);
-      setError("");
-    } catch {
-      setError("Impossible de charger le panier.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    let active = true;
+    apiFetch<CartResponse>("/cart")
+      .then((result) => {
+        if (!active) return;
+        setCart(result.data);
+        setError(null);
+      })
+      .catch((requestError: unknown) => {
+        console.error("Could not load the m04.shop cart.", requestError);
+        if (active) setError("cartLoadError");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  useEffect(() => { void refresh(); }, []);
+  // Product details give each line its colours and quantity offers.
+  useEffect(() => {
+    const missing = cart.map((line) => line.slug).filter((slug) => slug && !products[slug]);
+    if (!missing.length) return;
+    let active = true;
+    Promise.all(missing.map((slug) => getProduct(slug).catch(() => null))).then((loaded) => {
+      if (!active) return;
+      setProducts((current) => {
+        const next = { ...current };
+        loaded.forEach((product) => {
+          if (product) next[product.slug] = product;
+        });
+        return next;
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [cart, products]);
 
-  async function update(line: CartLine, quantity: number) {
+  async function update(line: CartLine, changes: { quantity?: number; variant_id?: number }) {
     setPending(true);
+    setError(null);
     try {
       const result = await apiFetch<CartResponse>(`/cart/${line.product_id}`, {
         method: "PATCH",
-        body: JSON.stringify({ variant_id: line.variant_id, quantity }),
+        body: JSON.stringify({ variant_id: changes.variant_id ?? line.variant_id, quantity: changes.quantity ?? line.quantity }),
       });
       setCart(result.data);
-    } catch {
-      setError("Stock insuffisant ou mise à jour impossible.");
+      window.dispatchEvent(new Event("m04-cart-updated"));
+    } catch (requestError) {
+      console.error("Could not update the m04.shop cart.", requestError);
+      setError(changes.variant_id ? "lineError" : "cartUpdateError");
     } finally {
       setPending(false);
     }
@@ -46,11 +102,14 @@ export default function CartPage() {
 
   async function remove(line: CartLine) {
     setPending(true);
+    setError(null);
     try {
       const result = await apiFetch<CartResponse>(`/cart/${line.product_id}`, { method: "DELETE" });
       setCart(result.data);
-    } catch {
-      setError("Impossible de retirer cet article.");
+      window.dispatchEvent(new Event("m04-cart-updated"));
+    } catch (requestError) {
+      console.error("Could not remove an item from the m04.shop cart.", requestError);
+      setError("cartRemoveError");
     } finally {
       setPending(false);
     }
@@ -59,58 +118,159 @@ export default function CartPage() {
   async function placeOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
-    setError("");
+    setError(null);
     const form = new FormData(event.currentTarget);
-    const details = Object.fromEntries(form.entries());
+    const details = Object.fromEntries([...form.entries()].filter(([, value]) => value !== ""));
+    trackPixel("InitiateCheckout", {
+      value: subtotal, currency: "MAD", num_items: cart.reduce((sum, line) => sum + line.quantity, 0),
+      content_ids: cart.map((line) => String(line.product_id)), content_type: "product",
+    });
     try {
       const checkout = await apiFetch<CheckoutResponse>("/cart/checkout", { method: "POST", body: "{}" });
       const order = await apiFetch<OrderResponse>("/orders", {
         method: "POST",
         body: JSON.stringify({ ...details, request_key: checkout.request_key }),
       });
+      // Same event_id as the server-side Conversions API event, so Meta counts one purchase.
+      trackPixel("Purchase", {
+        value: order.data.total, currency: "MAD", content_type: "product",
+        content_ids: order.data.items.map((item) => item.item_id),
+        contents: order.data.items.map((item) => ({ id: item.item_id, quantity: item.quantity, item_price: item.price })),
+        num_items: order.data.items.reduce((sum, item) => sum + item.quantity, 0),
+      }, order.data.event_id);
       setConfirmation(order.data);
       setCart([]);
-    } catch {
-      setError("La commande n'a pas pu être enregistrée. Vérifiez vos informations et réessayez.");
+      window.dispatchEvent(new Event("m04-cart-updated"));
+    } catch (requestError) {
+      console.error("Could not place the m04.shop order.", requestError);
+      setError("orderError");
     } finally {
       setPending(false);
     }
   }
 
-  if (loading) return <main className="mx-auto max-w-4xl px-6 py-16">Chargement du panier…</main>;
-  if (confirmation) return <main className="mx-auto max-w-2xl px-6 py-20"><p className="text-sm font-semibold uppercase tracking-widest text-emerald-700">Commande reçue</p><h1 className="mt-3 text-4xl font-semibold">Merci pour votre commande.</h1><p className="mt-5 text-zinc-600">Référence : <strong>{confirmation.reference}</strong></p><p className="mt-2 text-zinc-600">Total : <strong>{confirmation.total} DH</strong></p><a href="/" className="mt-8 inline-block rounded-lg bg-zinc-950 px-5 py-3 text-white">Continuer vos achats</a></main>;
+  if (loading) return <main className="page-wrap cart-page"><p className="state-message" role="status">{t("loading")}</p></main>;
+  if (confirmation) {
+    return (
+      <main className="page-wrap confirmation-page">
+        <div className="confirmation-mark" aria-hidden="true"><CheckIcon size={28} weight="bold" /></div>
+        <p className="section-kicker">{t("orderReceived")}</p>
+        <h1>{t("thankYou")}</h1>
+        <p>{t("reference")} : <strong>{confirmation.reference}</strong></p>
+        <p>{t("total")} : <strong>{formatPrice(confirmation.total, language)}</strong></p>
+        <p>{t("phoneHint")}</p>
+        <Link className="button button-primary" href="/">{t("continueShopping")}</Link>
+      </main>
+    );
+  }
 
   const subtotal = cart.reduce((sum, line) => sum + Number(line.total), 0);
 
   return (
-    <main className="mx-auto grid max-w-6xl gap-10 px-6 py-10 lg:grid-cols-[1.2fr_0.8fr]">
-      <section>
-        <a href="/" className="text-sm text-zinc-500 hover:text-black">← Continuer vos achats</a>
-        <h1 className="mb-6 mt-4 text-3xl font-semibold">Votre panier</h1>
-        {cart.length ? <div className="divide-y divide-black/10 border-y border-black/10">
-          {cart.map((line) => <article key={line.product_id} className="flex gap-4 py-5">
-            <img src={line.image_url} alt="" className="h-24 w-24 rounded-lg bg-zinc-100 object-cover" />
-            <div className="flex flex-1 flex-col justify-between sm:flex-row sm:items-center">
-              <div><h2 className="font-medium">{line.name}</h2><p className="mt-1 text-sm text-zinc-500">{line.variant}</p><p className="mt-2 font-semibold">{line.total} DH</p></div>
-              <div className="mt-3 flex items-center gap-3 sm:mt-0"><button disabled={pending || line.quantity <= 1} onClick={() => update(line, line.quantity - 1)} aria-label="Diminuer la quantité" className="h-8 w-8 rounded border">−</button><span>{line.quantity}</span><button disabled={pending || line.quantity >= 20} onClick={() => update(line, line.quantity + 1)} aria-label="Augmenter la quantité" className="h-8 w-8 rounded border">+</button><button disabled={pending} onClick={() => remove(line)} className="ml-2 text-sm text-zinc-500 underline">Retirer</button></div>
-            </div>
-          </article>)}
-        </div> : <p className="rounded-xl bg-zinc-50 p-8 text-zinc-600">Votre panier est vide.</p>}
-      </section>
+    <main className="page-wrap cart-page">
+      <div className="breadcrumb"><Link href="/">{t("home")}</Link><span aria-hidden="true">/</span><span>{t("cartTitle")}</span></div>
+      <div className="cart-layout">
+        <section>
+          <div className="cart-heading">
+            <h1>{t("cartTitle")}</h1>
+            <Link className="text-link" href="/boutique">{t("continueShopping")}</Link>
+          </div>
+          {error ? <p role="alert" className="form-error">{t(error)}</p> : null}
+          {cart.length ? (
+            <div className="cart-lines">
+              {cart.map((line) => {
+                const product = products[line.slug];
+                const offers = [...(product?.offers ?? [])].sort((a, b) => a.quantity - b.quantity);
+                const colors = product?.variants.filter((variant) => variant.color_hex) ?? [];
+                const offer = offers.find((item) => item.quantity === line.quantity);
+                return (
+                  <article key={`${line.product_id}-${line.variant_id}`} className="cart-line">
+                    <Image src={line.image_url} alt={line.name} width={96} height={96} sizes="96px" unoptimized />
+                    <div className="cart-line-copy">
+                      <h2 dir="auto">{line.name}</h2>
+                      <p dir="auto">{line.variant}{offer ? ` · ${t("offerLabel")} : ${offer.name}` : ""}</p>
+                      <strong>{formatPrice(line.total, language)}</strong>
+                      {!line.available ? <p className="line-warning">{t("unavailable")}</p> : null}
 
-      <section className="h-fit rounded-xl border border-black/10 p-6">
-        <h2 className="text-xl font-semibold">Livraison et commande</h2>
-        <div className="my-5 flex justify-between border-b border-black/10 pb-4 text-sm"><span>Sous-total</span><strong>{subtotal} DH</strong></div>
-        {error ? <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
-        <form onSubmit={placeOrder} className="grid gap-3">
-          <input name="name" required maxLength={190} placeholder="Nom complet" className="rounded-lg border px-3 py-3 text-sm" />
-          <input name="phone" required maxLength={40} placeholder="Téléphone" className="rounded-lg border px-3 py-3 text-sm" />
-          <input name="city" required maxLength={120} placeholder="Ville" className="rounded-lg border px-3 py-3 text-sm" />
-          <input name="address" required maxLength={500} placeholder="Adresse" className="rounded-lg border px-3 py-3 text-sm" />
-          <textarea name="comment" maxLength={500} placeholder="Note pour la livraison (facultatif)" className="min-h-20 rounded-lg border px-3 py-3 text-sm" />
-          <button disabled={!cart.length || pending || cart.some((line) => !line.available)} className="mt-2 rounded-lg bg-zinc-950 px-4 py-3 font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-400">{pending ? "Traitement…" : "Confirmer la commande"}</button>
-        </form>
-      </section>
+                      {colors.length > 1 ? (
+                        <div className="line-colors" role="group" aria-label={t("color")}>
+                          {colors.map((variant) => (
+                            <button
+                              key={variant.id}
+                              type="button"
+                              className={variant.id === line.variant_id ? "color-option small is-selected" : "color-option small"}
+                              style={{ background: variant.color_hex ?? undefined }}
+                              disabled={pending || !variant.available}
+                              aria-pressed={variant.id === line.variant_id}
+                              aria-label={variant.name}
+                              title={variant.name}
+                              onClick={() => void update(line, { variant_id: variant.id })}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                      {offers.length ? (
+                        <div className="line-offers" role="group" aria-label={t("chooseOffer")}>
+                          <button type="button" className={line.quantity === 1 ? "offer-chip is-selected" : "offer-chip"} disabled={pending} onClick={() => void update(line, { quantity: 1 })}>
+                            {t("onePiece")}
+                          </button>
+                          {offers.map((item) => (
+                            <button key={item.id} type="button" className={line.quantity === item.quantity ? "offer-chip is-selected" : "offer-chip"} disabled={pending} onClick={() => void update(line, { quantity: item.quantity })}>
+                              {item.name} · {formatPrice(item.total, language)}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="cart-line-actions">
+                      <div className="quantity-control">
+                        <button disabled={pending || line.quantity <= 1} onClick={() => void update(line, { quantity: line.quantity - 1 })} aria-label={t("decreaseQuantity")}><MinusIcon size={14} aria-hidden="true" /></button>
+                        <span>{line.quantity}</span>
+                        <button disabled={pending || line.quantity >= 20} onClick={() => void update(line, { quantity: line.quantity + 1 })} aria-label={t("increaseQuantity")}><PlusIcon size={14} aria-hidden="true" /></button>
+                      </div>
+                      <button className="remove-button" disabled={pending} onClick={() => void remove(line)}>{t("remove")}</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-cart">
+              <ShoppingBagOpenIcon size={40} aria-hidden="true" />
+              <p>{t("emptyCart")}</p>
+              <Link className="button button-primary" href="/boutique">{t("discover")}</Link>
+            </div>
+          )}
+        </section>
+
+        <aside className="checkout-card">
+          <h2>{t("deliveryOrder")}</h2>
+          {cart.length ? (
+            <ul className="checkout-summary" aria-label={t("yourOrder")}>
+              {cart.map((line) => (
+                <li key={line.product_id}>
+                  <span dir="auto">{line.name}<small dir="auto">{line.variant} × {line.quantity}</small></span>
+                  <b>{formatPrice(line.total, language)}</b>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="subtotal-row"><span>{t("total")}</span><strong>{formatPrice(subtotal, language)}</strong></div>
+          <p className="checkout-note">{t("cod")}. {t("freeDelivery")}.</p>
+          <form onSubmit={placeOrder} className="checkout-form">
+            <p className="checkout-form-title">{t("deliveryDetails")}</p>
+            <label>{t("fullName")}<input name="name" required maxLength={190} autoComplete="name" /></label>
+            <label>{t("phone")}<input name="phone" type="tel" required maxLength={40} autoComplete="tel" dir="ltr" inputMode="tel" /><small>{t("phoneHint")}</small></label>
+            <label>{t("city")}<input name="city" required maxLength={120} autoComplete="address-level2" /></label>
+            <label>{t("district")}<input name="district" maxLength={120} autoComplete="address-level3" /></label>
+            <label>{t("address")}<input name="address" required maxLength={500} autoComplete="street-address" /></label>
+            <label>{t("deliveryNote")}<textarea name="comment" maxLength={500} rows={3} /></label>
+            <button disabled={!cart.length || pending || cart.some((line) => !line.available)} className="button button-primary checkout-submit">
+              {pending ? t("processing") : `${t("confirmOrder")} · ${formatPrice(subtotal, language)}`}
+            </button>
+          </form>
+        </aside>
+      </div>
     </main>
   );
 }
