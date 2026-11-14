@@ -27,9 +27,28 @@ export type Product = {
   categories: { id: number; name: string; slug: string }[];
   images: { url: string; alt: string | null }[];
   card_image_url?: string | null;
-  variants: { id: number; name: string; available: boolean; color?: string | null; color_hex?: string | null; price?: string | null; image_url?: string | null }[];
+  /** Name of the second choice next to the colour (Puissance, Taille…), set per product in the admin. */
+  variant_option_label?: string | null;
+  /** How that second choice is shown: buttons or a dropdown list. */
+  option_display?: "buttons" | "select";
+  variants: {
+    id: number;
+    name: string;
+    available: boolean;
+    color?: string | null;
+    color_hex?: string | null;
+    /** Value of the second choice (e.g. "25W"). */
+    capacity?: string | null;
+    price?: string | null;
+    image_url?: string | null;
+  }[];
   offers?: Offer[];
+  /** Landing page sections built in the admin (product page only). */
+  sections?: LandingSection[];
 };
+
+/** One landing page section: its type and its fields ("title_fr", "title_ary", "items"…). */
+export type LandingSection = { id: number; type: string } & Record<string, unknown>;
 
 export type Offer = { id: number; name: string; badge: string | null; quantity: number; total: string; unit_price: number; image_url: string | null };
 

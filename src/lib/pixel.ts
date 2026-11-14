@@ -19,6 +19,7 @@ const pending: [string, Record<string, unknown>, string | undefined][] = [];
  */
 export function initPixel(pixelIds: string[]): boolean {
   if (initialised || typeof window === "undefined" || !pixelIds.length) return initialised;
+  if (adoptBaseCode()) return true;
   if (!window.fbq) {
     const fbq = function (...args: unknown[]) {
       if (fbq.callMethod) fbq.callMethod(...args);
@@ -41,6 +42,18 @@ export function initPixel(pixelIds: string[]): boolean {
   return true;
 }
 
+/**
+ * True when the Meta base code in the page <head> already loaded and initialised the
+ * pixels: events then go straight to it (queued events are flushed once).
+ */
+export function adoptBaseCode(): boolean {
+  if (initialised) return true;
+  if (typeof window === "undefined" || !document.getElementById("meta-pixel") || !window.fbq) return false;
+  initialised = true;
+  for (const [event, params, eventId] of pending.splice(0)) send(event, params, eventId);
+  return true;
+}
+
 function send(event: string, params: Record<string, unknown>, eventId?: string) {
   if (eventId) window.fbq?.("track", event, params, { eventID: eventId });
   else window.fbq?.("track", event, params);
@@ -52,7 +65,7 @@ function send(event: string, params: Record<string, unknown>, eventId?: string) 
  */
 export function trackPixel(event: string, params: Record<string, unknown> = {}, eventId?: string): void {
   if (typeof window === "undefined") return;
-  if (!initialised) {
+  if (!initialised && !adoptBaseCode()) {
     if (pending.length < 50) pending.push([event, params, eventId]);
     return;
   }

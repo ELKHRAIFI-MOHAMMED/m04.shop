@@ -7,6 +7,8 @@ import { CheckCircleIcon, HandCoinsIcon, TruckIcon } from "@phosphor-icons/react
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { DirectCheckout } from "@/components/direct-checkout";
 import { Tilt } from "@/components/tilt";
+import { ProductLanding } from "@/components/product-landing";
+import { VariantPicker } from "@/components/variant-picker";
 import { getProduct, isReadableDescription, type Product } from "@/lib/catalog";
 import { trackPixel } from "@/lib/pixel";
 import { categoryPath } from "@/lib/seo";
@@ -75,7 +77,6 @@ export function ProductDetail({ slug, initialProduct }: { slug: string; initialP
   const unitPrice = Number(variant?.price ?? product.current_price);
   const chosenOffer = offers.find((offer) => offer.quantity === quantity);
   const total = chosenOffer ? Number(chosenOffer.total) : unitPrice * quantity;
-  const hasColors = product.variants.some((item) => item.color_hex);
   const mode = product.purchase_mode ?? "cart";
   const directOrder = mode === "checkout" || mode === "both";
 
@@ -105,7 +106,7 @@ export function ProductDetail({ slug, initialProduct }: { slug: string; initialP
           ) : null}
         </section>
 
-        <section className="product-information">
+        <section className="product-information" id="acheter">
           <Link className="text-link product-back" href="/boutique">{t("back")}</Link>
           {product.categories[0] ? <Link className="section-kicker" href={categoryPath(product.categories[0].slug)}>{translateCategory(product.categories[0].slug, product.categories[0].name, language)}</Link> : null}
           <h1 dir="auto">{product.name}</h1>
@@ -142,26 +143,11 @@ export function ProductDetail({ slug, initialProduct }: { slug: string; initialP
           ) : null}
 
           {product.variants.length ? (
-            <fieldset className="variant-picker">
-              <legend>{hasColors ? `${t("color")} : ${variant?.name ?? ""}` : t("variants")}</legend>
-              <div className={hasColors ? "variant-options color-options" : "variant-options"}>
-                {product.variants.map((item) => (
-                  <button
-                    className={`${hasColors && item.color_hex ? "color-option" : "variant-option"}${selectedVariantId === item.id ? " is-selected" : ""}`}
-                    disabled={!item.available}
-                    type="button"
-                    key={item.id}
-                    aria-pressed={selectedVariantId === item.id}
-                    aria-label={hasColors && item.color_hex ? `${item.name}${!item.available ? `, ${t("outOfStock")}` : ""}` : undefined}
-                    title={item.name}
-                    style={hasColors && item.color_hex ? { background: item.color_hex } : undefined}
-                    onClick={() => { setSelectedVariantId(item.id); if (item.image_url) setLinkedImage(item.image_url); }}
-                  >
-                    {hasColors && item.color_hex ? null : <>{item.name}{!item.available ? ` · ${t("outOfStock")}` : ""}</>}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+            <VariantPicker
+              product={product}
+              selected={variant}
+              onSelect={(item) => { setSelectedVariantId(item.id); if (item.image_url) setLinkedImage(item.image_url); }}
+            />
           ) : null}
           {offers.length ? <p className="order-total"><span>{t("total")}</span><strong>{formatPrice(total, language)}</strong></p> : null}
           {directOrder ? (
@@ -187,6 +173,7 @@ export function ProductDetail({ slug, initialProduct }: { slug: string; initialP
           </ul>
         </section>
       </div>
+      <ProductLanding sections={product.sections ?? []} orderHref={directOrder ? "#commander" : "#acheter"} productName={product.name} />
       {directOrder ? <StickyOrderBar label={`${t("orderButton")} · ${formatPrice(total, language)}`} /> : null}
     </main>
   );

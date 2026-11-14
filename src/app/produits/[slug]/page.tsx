@@ -17,6 +17,12 @@ function readableDescription(product: Product): string | null {
   return isReadableDescription(product.description) ? product.description : null;
 }
 
+/** Admin SEO text, ignoring legacy translation keys such as "loza10k.seo". */
+function seoText(value: string | null | undefined): string | null {
+  const text = value?.trim();
+  return isReadableDescription(text) ? text : null;
+}
+
 function price(product: Product): string {
   return `${Math.round(Number(product.current_price))} DH`;
 }
@@ -28,9 +34,9 @@ export async function generateMetadata({ params }: PageProps<"/produits/[slug]">
   const image = product.card_image_url ?? product.images[0]?.url;
   const category = product.categories[0];
   // Admin SEO fields first; otherwise "AirPods Pro 2 au Maroc – 299 DH".
-  const title = product.seo_title?.trim() || `${product.name} au Maroc – ${price(product)}`;
+  const title = seoText(product.seo_title) || `${product.name} au Maroc – ${price(product)}`;
   const description = excerpt(
-    product.seo_description?.trim()
+    seoText(product.seo_description)
       || `${product.name} au meilleur prix au Maroc : ${price(product)}. ${readableDescription(product) ?? ""} Paiement à la livraison, livraison partout au Maroc.`,
   );
   return {
@@ -71,7 +77,7 @@ async function ProductContent({ params }: { params: PageProps<"/produits/[slug]"
                 name: product.name,
                 url,
                 image: product.images.map((image) => image.url).slice(0, 6),
-                description: excerpt(product.seo_description || readableDescription(product) || `${product.name} au Maroc, paiement à la livraison.`, 500),
+                description: excerpt(seoText(product.seo_description) || readableDescription(product) || `${product.name} au Maroc, paiement à la livraison.`, 500),
                 sku: String(product.id),
                 category: category?.name,
                 offers: {

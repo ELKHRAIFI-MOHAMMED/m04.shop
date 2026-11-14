@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRightIcon, CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react";
 import { HomeHero, KeywordMarquee } from "@/components/home-hero";
 import { HomeSlider } from "@/components/home-slider";
+import { HomeWhy } from "@/components/home-why";
 import { ProductCard } from "@/components/product-card";
 import { ProductGrid } from "@/components/product-grid";
 import { getCategories, type Category, type Product } from "@/lib/catalog";
@@ -75,7 +76,7 @@ export function StorefrontHome({ initial, about }: { initial?: HomeInitialData; 
   const reviewsText = sections ? (language === "ary" ? sections.reviews_text_ary : sections.reviews_text_fr) : "";
 
   return (
-    <main>
+    <main className="home-page">
       <HomeHero products={showcase} />
       <KeywordMarquee categories={categories} />
 
@@ -155,6 +156,8 @@ export function StorefrontHome({ initial, about }: { initial?: HomeInitialData; 
           </div>
         </section>
       ) : null}
+
+      <HomeWhy whatsapp={home?.social.whatsapp} />
 
       {about}
     </main>

@@ -1,20 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
-import { CheckIcon, LightningIcon } from "@phosphor-icons/react";
+import { LightningIcon } from "@phosphor-icons/react";
+import { OrderThanks, type PlacedOrder } from "@/components/order-thanks";
 import { apiFetch } from "@/lib/api";
 import { trackPixel } from "@/lib/pixel";
 import { formatPrice, useStore } from "@/lib/storefront";
 
-type OrderResponse = {
-  data: {
-    reference: string;
-    total: number;
-    event_id: string;
-    items: { item_id: string; item_name: string; quantity: number; price: number }[];
-  };
-};
+type OrderResponse = { data: PlacedOrder };
 
 function newRequestKey(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -90,14 +83,8 @@ export function DirectCheckout({
 
   if (confirmation) {
     return (
-      <section className="direct-checkout direct-success" id="commander" role="status">
-        <span className="confirmation-mark" aria-hidden="true"><CheckIcon size={26} weight="bold" /></span>
-        <p className="section-kicker">{t("orderSent")}</p>
-        <h2>{t("thankYou")}</h2>
-        <p>{t("reference")} : <strong>{confirmation.reference}</strong></p>
-        <p>{t("total")} : <strong>{formatPrice(confirmation.total, language)}</strong></p>
-        <p className="direct-note">{t("phoneHint")}</p>
-        <Link className="button button-ghost" href="/boutique">{t("continueShopping")}</Link>
+      <section className="direct-checkout direct-success" id="commander">
+        <OrderThanks order={confirmation} />
       </section>
     );
   }

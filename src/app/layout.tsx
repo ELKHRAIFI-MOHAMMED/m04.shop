@@ -8,6 +8,7 @@ import { SITE_URL, getTracking } from "@/lib/server-api";
 import { StoreProvider } from "@/lib/storefront";
 import "lenis/dist/lenis.css";
 import "./globals.css";
+import "./landing.css";
 
 const readex = Readex_Pro({
   subsets: ["latin", "arabic"],
@@ -62,11 +63,36 @@ export const viewport: Viewport = {
 // Applies the saved theme and language direction before the first paint.
 const preferencesScript = `(function(){try{var d=document.documentElement;if(localStorage.getItem("m04-theme")==="light"){d.classList.remove("dark");d.classList.add("light")}if(localStorage.getItem("m04-language")==="fr"){d.lang="fr";d.dir="ltr"}}catch(e){}})()`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/**
+ * Meta Pixel base code, as given by Meta (Events Manager), for every pixel ID saved in
+ * the admin. It is in the HTML of every page so the PageView is sent as soon as the page
+ * opens and Meta's checks (Pixel Helper, test events) find it.
+ */
+function pixelBaseCode(ids: string[]): string {
+  const inits = ids.map((id) => `fbq('init','${id}');`).join("");
+  return `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');${inits}fbq('track','PageView');`;
+}
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const tracking = await getTracking();
+  // Only plain numeric IDs ever reach the inline script.
+  const pixelIds = tracking?.enabled ? tracking.pixel_ids.filter((id) => /^\d{5,20}$/.test(id)) : [];
+
   return (
     <html lang="ary" dir="rtl" className={`${readex.variable} dark h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: preferencesScript }} />
+        {pixelIds.length ? (
+          <>
+            <script id="meta-pixel" dangerouslySetInnerHTML={{ __html: pixelBaseCode(pixelIds) }} />
+            <noscript>
+              {pixelIds.map((id) => (
+                // eslint-disable-next-line @next/next/no-img-element -- Meta's no-JavaScript tracking pixel.
+                <img key={id} height="1" width="1" style={{ display: "none" }} alt="" src={`https://www.facebook.com/tr?id=${id}&ev=PageView&noscript=1`} />
+              ))}
+            </noscript>
+          </>
+        ) : null}
       </head>
       <body className="min-h-full flex flex-col">
         <StoreProvider>

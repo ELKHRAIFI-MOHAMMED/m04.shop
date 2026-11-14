@@ -569,9 +569,7 @@ html[dir="rtl"] .hero-pick {
 }
 
 .hero-pick-image img {
-  padding: 6px;
-  object-fit: contain;
-  mix-blend-mode: multiply;
+  object-fit: cover;
 }
 
 .hero-pick-copy {
@@ -831,10 +829,9 @@ html.light .product-image {
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
+/* Product photos are stored square (1:1) and fill the tile. */
 .product-image img {
-  padding: 18px;
-  object-fit: contain;
-  mix-blend-mode: multiply;
+  object-fit: cover;
 }
 
 .product-badges {
@@ -1264,9 +1261,7 @@ html.light .product-main-image {
 }
 
 .product-main-image img {
-  padding: clamp(20px, 4vw, 48px);
-  object-fit: contain;
-  mix-blend-mode: multiply;
+  object-fit: cover;
 }
 
 .product-main-image > .badge {
@@ -1307,9 +1302,7 @@ html.light .product-main-image {
 }
 
 .product-thumbnails img {
-  padding: 6px;
-  object-fit: contain;
-  mix-blend-mode: multiply;
+  object-fit: cover;
 }
 
 .product-information {
@@ -1402,6 +1395,35 @@ html[dir="rtl"] .product-information h1 {
   cursor: not-allowed;
   opacity: 0.45;
   text-decoration: line-through;
+}
+
+.variant-select {
+  display: grid;
+  gap: 10px;
+  max-width: 320px;
+}
+
+.variant-select label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.variant-select select {
+  width: 100%;
+  height: 46px;
+  padding-inline: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.variant-select select:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
 }
 
 .product-information .add-to-cart {
@@ -2232,10 +2254,9 @@ html[dir="rtl"] .slide-title {
 .cart-line > img {
   width: 96px;
   height: 96px;
-  padding: 8px;
   border-radius: 18px;
   background: var(--plate);
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .cart-line-copy h2 {
@@ -2636,10 +2657,6 @@ html[dir="rtl"] .slide-title {
 
   .product-image {
     border-radius: 18px;
-  }
-
-  .product-image img {
-    padding: 10px;
   }
 
   .product-card-copy {
@@ -3949,4 +3966,683 @@ html[dir="rtl"] .cat-card-arrow svg {
   .direct-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Home page: centred layout ---------- */
+
+.home-page .hx-copy {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.home-page .hx-typed,
+.home-page .hx-actions,
+.home-page .hx-trust {
+  justify-content: center;
+}
+
+.home-page .hx-text {
+  margin-inline: auto;
+}
+
+.home-page .hx-trust {
+  justify-items: center;
+}
+
+.home-page .section-heading {
+  justify-content: center;
+  text-align: center;
+}
+
+.home-page .section-heading > div {
+  display: grid;
+  justify-items: center;
+}
+
+.home-page .section-heading p:not(.section-kicker) {
+  max-width: 62ch;
+  line-height: 1.7;
+}
+
+.home-page .section-heading .section-kicker {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+/* Carousels: centred rows and centred card content. The product list grid keeps its layout. */
+.home-page .rail {
+  justify-content: safe center;
+}
+
+.home-page .rail-controls {
+  justify-content: center;
+}
+
+.home-page .rail .product-card-copy {
+  align-items: center;
+  text-align: center;
+}
+
+.home-page .rail .product-category {
+  max-width: 100%;
+}
+
+.home-page .rail .product-price,
+.home-page .rail .product-offer {
+  justify-content: center;
+}
+
+.home-page .rail .add-to-cart {
+  align-self: stretch;
+}
+
+@media (min-width: 761px) {
+  .home-page .cat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 250px));
+    justify-content: center;
+  }
+}
+
+.home-page .cat-card-copy {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.home-page .cat-card-copy > span:first-child {
+  justify-items: center;
+  max-width: 100%;
+}
+
+.home-page .cat-card-arrow {
+  display: none;
+}
+
+.home-page .seo-about-grid {
+  text-align: center;
+}
+
+.home-page .seo-about p:not(.section-kicker) {
+  margin-inline: auto;
+  max-width: 60ch;
+}
+
+.home-page .seo-links {
+  justify-content: center;
+}
+
+/* ---------- Why m04.shop, ordering steps, after-sales, FAQ ---------- */
+
+.why-section {
+  border-top: 1px solid var(--line);
+}
+
+.benefit-grid,
+.step-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.benefit-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.benefit-card,
+.step-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 10px;
+  padding: 28px 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+  text-align: center;
+  transition: border-color 200ms ease, transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.benefit-card:hover,
+.step-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+
+.benefit-icon,
+.service-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.benefit-card h3,
+.step-card h3 {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.benefit-card p,
+.step-card p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.steps-section {
+  background: var(--surface);
+}
+
+.step-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  counter-reset: step;
+}
+
+.step-card {
+  background: var(--background);
+}
+
+.step-number {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-fill);
+  box-shadow: var(--glow);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.service-panel {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.service-panel .section-heading {
+  margin-bottom: 18px;
+}
+
+.service-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 26px;
+  padding: 0;
+  list-style: none;
+}
+
+.service-list li {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.service-list svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.service-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.service-actions .button {
+  gap: 8px;
+}
+
+.faq-section {
+  background: var(--surface);
+}
+
+.faq-list {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--background);
+  transition: border-color 150ms ease;
+}
+
+.faq-item[open] {
+  border-color: var(--accent);
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary svg {
+  flex: none;
+  color: var(--accent);
+  transition: transform 200ms ease;
+}
+
+.faq-item[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.faq-item p {
+  margin: 0;
+  padding: 0 20px 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+@media (max-width: 1080px) {
+  .benefit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .step-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-page .section-heading {
+    align-items: center;
+  }
+
+  .benefit-grid {
+    gap: 10px;
+  }
+
+  .benefit-card,
+  .step-card {
+    gap: 8px;
+    padding: 18px 12px;
+    border-radius: 20px;
+  }
+
+  .benefit-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .benefit-card h3,
+  .step-card h3 {
+    font-size: 15px;
+  }
+
+  .benefit-card p,
+  .step-card p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .step-list {
+    gap: 12px;
+  }
+
+  .service-list li {
+    font-size: 14px;
+    text-align: start;
+  }
+
+  .service-actions .button {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .benefit-card,
+  .step-card,
+  .faq-item summary svg {
+    transition: none;
+  }
+}
+
+/* ---------- Thank-you after an order ---------- */
+
+.order-thanks {
+  display: grid;
+  width: min(100%, 560px);
+  justify-items: center;
+  gap: 6px;
+  margin-inline: auto;
+  scroll-margin-top: 96px;
+  text-align: center;
+}
+
+.order-thanks .section-kicker {
+  margin: 18px 0 0;
+}
+
+.order-thanks h1,
+.order-thanks h2 {
+  margin: 0;
+  font-size: clamp(26px, 3.6vw, 40px);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.order-thanks-section h2 {
+  font-size: 24px;
+}
+
+.order-thanks .order-thanks-lead {
+  margin: 4px 0 14px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.order-thanks-summary {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 6px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-raised);
+  text-align: start;
+}
+
+.order-thanks-summary > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.order-thanks-summary > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.order-thanks-summary dt {
+  min-width: 0;
+  color: var(--muted);
+}
+
+.order-thanks-summary dd {
+  flex: none;
+  margin: 0;
+  font-weight: 600;
+}
+
+.order-thanks-qty {
+  color: var(--foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-thanks-total dt,
+.order-thanks-total dd {
+  color: var(--foreground);
+  font-size: 15px;
+}
+
+.order-thanks-address {
+  flex-direction: column;
+  gap: 2px !important;
+}
+
+.order-thanks-address dd {
+  flex: auto;
+  font-weight: 500;
+}
+
+.order-thanks-whatsapp {
+  display: grid;
+  width: 100%;
+  justify-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 20px 18px;
+  border: 1px solid rgb(37 211 102 / 35%);
+  border-radius: 18px;
+  background: rgb(37 211 102 / 8%);
+}
+
+.order-thanks-whatsapp strong {
+  font-size: 16px;
+}
+
+.order-thanks-whatsapp p {
+  max-width: 44ch;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.whatsapp-button {
+  width: 100%;
+  min-height: 52px;
+  gap: 10px;
+  border-color: #1faa53;
+  background: #1faa53;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.whatsapp-button:hover {
+  border-color: #178f45;
+  background: #178f45;
+  color: #fff;
+}
+
+.order-thanks > .button-ghost {
+  margin-top: 12px;
+}
+
+.confirmation-page .order-thanks .button {
+  margin-top: 0;
+}
+
+.confirmation-page .order-thanks > .button-ghost {
+  margin-top: 12px;
+}
+
+.confirmation-page .order-thanks p:not(.section-kicker) {
+  margin: 0;
+}
+
+.confirmation-page .order-thanks .order-thanks-lead {
+  margin: 4px 0 14px;
+}
+
+/* ---------- Cart offer: −29 DH per extra product ---------- */
+
+.cart-offer-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  background: var(--accent-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.cart-offer-banner svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.cart-offer-banner strong {
+  color: var(--foreground);
+}
+
+.cart-totals {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+
+.cart-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cart-totals dt {
+  color: var(--muted);
+}
+
+.cart-totals dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cart-discount dt,
+.cart-discount dd {
+  color: var(--accent);
+}
+
+/* ---------- Product card actions: Buy + icon add-to-cart ---------- */
+
+.card-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.button-buy {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding-inline: 12px;
+  border-color: var(--accent-fill);
+  background: var(--accent-fill);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.button-buy:hover {
+  background: var(--accent-fill-hover);
+  box-shadow: var(--glow);
+  color: #fff;
+}
+
+.cart-icon-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.cart-icon-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cart-icon-button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.cart-icon-button.is-added {
+  border-color: #1faa53;
+  background: #1faa53;
+  color: #fff;
+}
+
+.cart-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.home-page .rail .card-actions {
+  align-self: stretch;
+}
+
+@media (max-width: 380px) {
+  .button-buy {
+    font-size: 13px;
+  }
+
+  .cart-icon-button {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-icon-button {
+    transition: none;
+  }
+}
+
+/* Visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/*
+ * Keep absolutely positioned bits (screen-reader text, badges) inside their card and
+ * inside the horizontal carousels: otherwise they escape the carousel's scroll area and
+ * widen the whole page, which on phones (RTL) shows an empty black screen.
+ */
+.rail,
+.card-actions {
+  position: relative;
+}
+
+/* Safety net: nothing inside the page may make it wider than the screen. */
+main {
+  overflow-x: clip;
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CheckIcon, ShoppingCartSimpleIcon } from "@phosphor-icons/react";
 import { apiFetch } from "@/lib/api";
 import { trackPixel } from "@/lib/pixel";
 import { useStore } from "@/lib/storefront";
@@ -16,6 +17,7 @@ export function AddToCartButton({
   quantity = 1,
   value,
   showCartLink = false,
+  compact = false,
 }: {
   productId: number;
   productName?: string;
@@ -24,6 +26,8 @@ export function AddToCartButton({
   quantity?: number;
   value?: number;
   showCartLink?: boolean;
+  /** Icon-only button (product cards). */
+  compact?: boolean;
 }) {
   const { t } = useStore();
   const [message, setMessage] = useState("");
@@ -31,6 +35,13 @@ export function AddToCartButton({
   const [pending, setPending] = useState(false);
   const variant = variants.find((item) => item.id === selectedVariantId && item.available)
     ?? variants.find((item) => item.available);
+
+  // The compact icon shows a check for a moment, then becomes a cart again.
+  useEffect(() => {
+    if (!compact || !added) return;
+    const timer = window.setTimeout(() => setAdded(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [compact, added]);
 
   async function addToCart() {
     if (!variant) return;
@@ -56,6 +67,25 @@ export function AddToCartButton({
     } finally {
       setPending(false);
     }
+  }
+
+  if (compact) {
+    const label = !variant ? t("unavailable") : added ? t("added") : `${t("add")} · ${productName ?? ""}`.trim();
+    return (
+      <>
+        <button
+          type="button"
+          onClick={addToCart}
+          disabled={!variant || pending}
+          className={`cart-icon-button${added ? " is-added" : ""}`}
+          aria-label={label}
+          title={label}
+        >
+          {added ? <CheckIcon size={20} weight="bold" aria-hidden="true" /> : <ShoppingCartSimpleIcon size={20} weight="bold" aria-hidden="true" />}
+        </button>
+        <span className="sr-only" role="status">{message}</span>
+      </>
+    );
   }
 
   return (

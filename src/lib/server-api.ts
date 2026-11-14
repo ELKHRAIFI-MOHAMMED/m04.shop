@@ -64,7 +64,8 @@ export async function getPolicy(slug: string): Promise<PolicyPage | null> {
 
 export async function getTracking(): Promise<{ enabled: boolean; pixel_ids: string[]; domain_verification?: string } | null> {
   "use cache";
-  cacheLife("hours");
+  // Minutes, so a pixel ID changed in the admin reaches the pages quickly.
+  cacheLife("minutes");
   return (await read<{ data: { enabled: boolean; pixel_ids: string[]; domain_verification?: string } }>("/tracking"))?.data ?? null;
 }
 

@@ -50,15 +50,14 @@ export function ProductCard({ product }: { product: Product }) {
             {formatPrice(bestOffer.total, language)}
           </p>
         ) : null}
-        {product.purchase_mode === "checkout" ? (
-          <div className="add-to-cart">
-            <Link className="button button-add" href={`${href}#commander`}>
-              {product.variants.some((variant) => variant.available) ? t("orderButton") : t("unavailable")}
-            </Link>
-          </div>
-        ) : (
-          <AddToCartButton productId={product.id} productName={product.name} variants={product.variants} />
-        )}
+        <div className="card-actions">
+          <Link className="button button-buy" href={href}>
+            {product.variants.some((variant) => variant.available) ? t("buy") : t("unavailable")}
+          </Link>
+          {product.purchase_mode !== "checkout" ? (
+            <AddToCartButton compact productId={product.id} productName={product.name} variants={product.variants} />
+          ) : null}
+        </div>
       </div>
     </article>
   );

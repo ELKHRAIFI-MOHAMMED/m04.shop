@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckIcon, MinusIcon, PlusIcon, ShoppingBagOpenIcon } from "@phosphor-icons/react";
+import { MinusIcon, PlusIcon, ShoppingBagOpenIcon, TagIcon } from "@phosphor-icons/react";
+import { OrderThanks, type PlacedOrder } from "@/components/order-thanks";
 import { apiFetch } from "@/lib/api";
 import { getProduct, type Product } from "@/lib/catalog";
 import { trackPixel } from "@/lib/pixel";
@@ -21,16 +22,11 @@ type CartLine = {
   total: number;
   available: boolean;
 };
-type CartResponse = { data: CartLine[] };
+/** Computed by the server with the same rule as the order: what the customer will pay. */
+type CartSummary = { products: number; subtotal: number; discount: number; discount_per_product: number; shipping: number; total: number };
+type CartResponse = { data: CartLine[]; summary?: CartSummary };
 type CheckoutResponse = { request_key: string; shipping: number };
-type OrderResponse = {
-  data: {
-    reference: string;
-    total: number;
-    event_id: string;
-    items: { item_id: string; item_name: string; quantity: number; price: number }[];
-  };
-};
+type OrderResponse = { data: PlacedOrder };
 type ErrorKey = "cartLoadError" | "cartUpdateError" | "cartRemoveError" | "orderError" | "lineError";
 
 export default function CartPage() {
@@ -41,6 +37,7 @@ export default function CartPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ErrorKey | null>(null);
   const [confirmation, setConfirmation] = useState<OrderResponse["data"] | null>(null);
+  const [summary, setSummary] = useState<CartSummary | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +45,7 @@ export default function CartPage() {
       .then((result) => {
         if (!active) return;
         setCart(result.data);
+        setSummary(result.summary ?? null);
         setError(null);
       })
       .catch((requestError: unknown) => {
@@ -91,6 +89,7 @@ export default function CartPage() {
         body: JSON.stringify({ variant_id: changes.variant_id ?? line.variant_id, quantity: changes.quantity ?? line.quantity }),
       });
       setCart(result.data);
+      setSummary(result.summary ?? null);
       window.dispatchEvent(new Event("m04-cart-updated"));
     } catch (requestError) {
       console.error("Could not update the m04.shop cart.", requestError);
@@ -106,6 +105,7 @@ export default function CartPage() {
     try {
       const result = await apiFetch<CartResponse>(`/cart/${line.product_id}`, { method: "DELETE" });
       setCart(result.data);
+      setSummary(result.summary ?? null);
       window.dispatchEvent(new Event("m04-cart-updated"));
     } catch (requestError) {
       console.error("Could not remove an item from the m04.shop cart.", requestError);
@@ -122,7 +122,7 @@ export default function CartPage() {
     const form = new FormData(event.currentTarget);
     const details = Object.fromEntries([...form.entries()].filter(([, value]) => value !== ""));
     trackPixel("InitiateCheckout", {
-      value: subtotal, currency: "MAD", num_items: cart.reduce((sum, line) => sum + line.quantity, 0),
+      value: total, currency: "MAD", num_items: cart.reduce((sum, line) => sum + line.quantity, 0),
       content_ids: cart.map((line) => String(line.product_id)), content_type: "product",
     });
     try {
@@ -140,6 +140,8 @@ export default function CartPage() {
       }, order.data.event_id);
       setConfirmation(order.data);
       setCart([]);
+      setSummary(null);
+      window.scrollTo({ top: 0 });
       window.dispatchEvent(new Event("m04-cart-updated"));
     } catch (requestError) {
       console.error("Could not place the m04.shop order.", requestError);
@@ -153,18 +155,16 @@ export default function CartPage() {
   if (confirmation) {
     return (
       <main className="page-wrap confirmation-page">
-        <div className="confirmation-mark" aria-hidden="true"><CheckIcon size={28} weight="bold" /></div>
-        <p className="section-kicker">{t("orderReceived")}</p>
-        <h1>{t("thankYou")}</h1>
-        <p>{t("reference")} : <strong>{confirmation.reference}</strong></p>
-        <p>{t("total")} : <strong>{formatPrice(confirmation.total, language)}</strong></p>
-        <p>{t("phoneHint")}</p>
-        <Link className="button button-primary" href="/">{t("continueShopping")}</Link>
+        <OrderThanks order={confirmation} as="page" />
       </main>
     );
   }
 
-  const subtotal = cart.reduce((sum, line) => sum + Number(line.total), 0);
+  const subtotal = summary?.subtotal ?? cart.reduce((sum, line) => sum + Number(line.total), 0);
+  const discount = summary?.discount ?? 0;
+  const shipping = summary?.shipping ?? 0;
+  const total = summary?.total ?? subtotal;
+  const perProduct = summary?.discount_per_product ?? 29;
 
   return (
     <main className="page-wrap cart-page">
@@ -176,6 +176,17 @@ export default function CartPage() {
             <Link className="text-link" href="/boutique">{t("continueShopping")}</Link>
           </div>
           {error ? <p role="alert" className="form-error">{t(error)}</p> : null}
+          {cart.length ? (
+            <p className="cart-offer-banner" role="note">
+              <TagIcon size={20} weight="fill" aria-hidden="true" />
+              <span>
+                <strong>{t("cartOfferTitle").replace("{amount}", formatPrice(perProduct, language))}</strong>
+                {discount > 0
+                  ? t("cartOfferSaved").replace("{amount}", formatPrice(discount, language))
+                  : t("cartOfferHint").replace("{amount}", formatPrice(perProduct, language))}
+              </span>
+            </p>
+          ) : null}
           {cart.length ? (
             <div className="cart-lines">
               {cart.map((line) => {
@@ -255,7 +266,19 @@ export default function CartPage() {
               ))}
             </ul>
           ) : null}
-          <div className="subtotal-row"><span>{t("total")}</span><strong>{formatPrice(subtotal, language)}</strong></div>
+          {discount > 0 || shipping > 0 ? (
+            <dl className="cart-totals">
+              <div><dt>{t("subtotal")}</dt><dd>{formatPrice(subtotal, language)}</dd></div>
+              {discount > 0 ? (
+                <div className="cart-discount">
+                  <dt>{t("cartOfferLine").replace("{amount}", formatPrice(perProduct, language))}</dt>
+                  <dd>− {formatPrice(discount, language)}</dd>
+                </div>
+              ) : null}
+              {shipping > 0 ? <div><dt>{t("deliveryFee")}</dt><dd>{formatPrice(shipping, language)}</dd></div> : null}
+            </dl>
+          ) : null}
+          <div className="subtotal-row"><span>{t("total")}</span><strong>{formatPrice(total, language)}</strong></div>
           <p className="checkout-note">{t("cod")}. {t("freeDelivery")}.</p>
           <form onSubmit={placeOrder} className="checkout-form">
             <p className="checkout-form-title">{t("deliveryDetails")}</p>
@@ -266,7 +289,7 @@ export default function CartPage() {
             <label>{t("address")}<input name="address" required maxLength={500} autoComplete="street-address" /></label>
             <label>{t("deliveryNote")}<textarea name="comment" maxLength={500} rows={3} /></label>
             <button disabled={!cart.length || pending || cart.some((line) => !line.available)} className="button button-primary checkout-submit">
-              {pending ? t("processing") : `${t("confirmOrder")} · ${formatPrice(subtotal, language)}`}
+              {pending ? t("processing") : `${t("confirmOrder")} · ${formatPrice(total, language)}`}
             </button>
           </form>
         </aside>
