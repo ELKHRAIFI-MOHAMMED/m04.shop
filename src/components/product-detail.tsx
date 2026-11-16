@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { CheckCircleIcon, HandCoinsIcon, TruckIcon } from "@phosphor-icons/react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { DirectCheckout } from "@/components/direct-checkout";
-import { Tilt } from "@/components/tilt";
 import { ProductLanding } from "@/components/product-landing";
 import { VariantPicker } from "@/components/variant-picker";
 import { getProduct, isReadableDescription, type Product } from "@/lib/catalog";
@@ -91,10 +90,10 @@ export function ProductDetail({ slug, initialProduct }: { slug: string; initialP
       </div>
       <div className="product-detail-layout">
         <section className="product-gallery" aria-label={t("productGallery")}>
-          <Tilt className="product-main-image" max={5}>
+          <div className="product-main-image">
             {image ? <Image src={image.url} alt={image.alt ?? product.name} fill sizes="(max-width: 700px) 100vw, 55vw" unoptimized loading="eager" /> : <span className="image-placeholder">{t("noImage")}</span>}
             {isOnSale ? <span className="badge badge-sale">{t("sale")}</span> : null}
-          </Tilt>
+          </div>
           {product.images.length > 1 ? (
             <div className="product-thumbnails">
               {product.images.map((item, index) => (

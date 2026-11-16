@@ -1,12 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Readex_Pro } from "next/font/google";
 import { MetaPixel } from "@/components/meta-pixel";
-import { SmoothScroll } from "@/components/smooth-scroll";
 import { StoreShell } from "@/components/store-shell";
 import { SITE_KEYWORDS } from "@/lib/seo";
 import { SITE_URL, getTracking } from "@/lib/server-api";
 import { StoreProvider } from "@/lib/storefront";
-import "lenis/dist/lenis.css";
 import "./globals.css";
 import "./landing.css";
 
@@ -97,9 +95,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <StoreProvider>
           <MetaPixel />
-          <SmoothScroll>
-            <StoreShell>{children}</StoreShell>
-          </SmoothScroll>
+          <StoreShell>{children}</StoreShell>
         </StoreProvider>
       </body>
     </html>

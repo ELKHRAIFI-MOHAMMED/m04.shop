@@ -313,7 +313,7 @@ html.light .announcement {
   font-size: 14px;
   font-weight: 600;
   text-align: center;
-  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 200ms ease, color 160ms ease;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 200ms ease, color 160ms ease, transform 120ms ease;
 }
 
 .button-primary {
@@ -794,27 +794,6 @@ html[dir="rtl"] .category-card:hover .category-arrow {
   display: block;
 }
 
-.tilt {
-  position: relative;
-  transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.tilt-glare {
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 30%), rgb(169 204 255 / 22%), transparent 55%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 250ms ease;
-}
-
-.tilt:hover .tilt-glare {
-  opacity: 1;
-}
-
 .product-image {
   position: relative;
   display: grid;
@@ -832,6 +811,27 @@ html.light .product-image {
 /* Product photos are stored square (1:1) and fill the tile. */
 .product-image img {
   object-fit: cover;
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Hover: the card lifts 2px, the photo zooms a little inside its frame; buttons press. */
+.product-card {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .product-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .product-card:hover .product-image img,
+  .product-main-image:hover img {
+    transform: scale(1.03);
+  }
+
+  .button:active:not(:disabled) {
+    transform: translateY(1px);
+  }
 }
 
 .product-badges {
@@ -954,29 +954,6 @@ html.light .product-image {
   color: #586172;
   font-size: 13px;
   text-align: center;
-}
-
-@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-  .reveal-grid:not(.is-visible) .product-grid-item {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-
-  .reveal-grid.is-visible .product-grid-item {
-    animation: reveal-up 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(var(--reveal-index, 0) * 60ms);
-  }
-}
-
-@keyframes reveal-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tilt {
-    transform: none;
-  }
 }
 
 /* ---------- Promo band ---------- */
@@ -4646,3 +4623,52 @@ html[dir="rtl"] .cat-card-arrow svg {
 main {
   overflow-x: clip;
 }
+
+/* One or two products: wide feature cards, photo beside the details. */
+.product-grid-feature {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.product-grid-feature .product-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(16px, 2vw, 28px);
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--surface);
+}
+
+.product-grid-feature .product-card-copy {
+  padding: 0;
+}
+
+.product-grid-feature .product-card h3 {
+  font-size: 18px;
+}
+
+.product-grid-feature:has(> :only-child) {
+  grid-template-columns: minmax(0, 760px);
+}
+
+@media (max-width: 760px) {
+  .product-grid-feature,
+  .product-grid-feature:has(> :only-child) {
+    grid-template-columns: 1fr;
+  }
+
+  .product-grid-feature .product-card {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    padding: 10px;
+    border-radius: 22px;
+  }
+
+  .product-grid-feature .product-card h3 {
+    font-size: 15px;
+  }
+}
+
+/* Interface guidelines: balanced headings, no double-tap zoom delay. */
+h1, h2, h3 { text-wrap: balance; }
+button, a, select, label { touch-action: manipulation; }

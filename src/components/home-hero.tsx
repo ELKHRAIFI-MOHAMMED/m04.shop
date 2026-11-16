@@ -32,7 +32,7 @@ export function HomeHero({ products }: { products: Product[] }) {
         <div className="hx-copy">
           <p className="hx-kicker hx-fade" style={{ "--d": "0ms" } as CSSProperties}>
             <span className="hx-kicker-dot" aria-hidden="true" />
-            <span>m04.shop</span>
+            <span translate="no">m04.shop</span>
             <span className="hx-kicker-sep" aria-hidden="true" />
             <span>{t("heroKicker")}</span>
           </p>

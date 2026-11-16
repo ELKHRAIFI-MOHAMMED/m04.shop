@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/add-to-cart-button";
-import { Tilt } from "@/components/tilt";
 import type { Product } from "@/lib/catalog";
 import { formatPrice, translateCategory, useStore } from "@/lib/storefront";
 
@@ -18,7 +17,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card">
       <Link href={href} className="product-image-link" tabIndex={-1} aria-hidden="true">
-        <Tilt className="product-image">
+        <div className="product-image">
           {imageUrl ? (
             <Image src={imageUrl} alt="" fill sizes="(max-width: 700px) 50vw, 280px" unoptimized />
           ) : (
@@ -29,7 +28,7 @@ export function ProductCard({ product }: { product: Product }) {
             {product.is_new ? <span className="badge badge-new">{t("new")}</span> : null}
             {product.is_best_seller ? <span className="badge badge-best">{t("best")}</span> : null}
           </div>
-        </Tilt>
+        </div>
       </Link>
       <div className="product-card-copy">
         {product.categories[0] ? (
