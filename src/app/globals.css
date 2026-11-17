@@ -4672,3 +4672,10 @@ main {
 /* Interface guidelines: balanced headings, no double-tap zoom delay. */
 h1, h2, h3 { text-wrap: balance; }
 button, a, select, label { touch-action: manipulation; }
+
+/* Back link and category label each on their own line above the product name. */
+.product-information .product-back,
+.product-information .section-kicker {
+  display: block;
+  width: max-content;
+}
